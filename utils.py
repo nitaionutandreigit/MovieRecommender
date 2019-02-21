@@ -1,6 +1,7 @@
 '''
 utils for movie recommendation model
 '''
+import pandas as pd
 
 
 def weighted_rating(df, m, C):
@@ -27,31 +28,30 @@ def similar_genres(movie_genres, my_movie_genres):
     return similarities
 
 
-def get_recommendations(title, indices, cosine_sim):
-    '''
-    Function that takes in movie title as input and outputs most similar movies
-    '''
-    # Get the index of the movie that matches the title
-    idx = indices[title]
-    # Get the pairwsie similarity scores of all movies with that movie
-    sim_scores = list(enumerate(cosine_sim[idx]))
-    # Sort the movies based on the similarity scores
-    sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
-    # Get the scores of the 10 most similar movies
-    sim_scores = sim_scores[1:11]
-    # Get the movie indices
-    movie_indices = [i[0] for i in sim_scores]
-    # Return the top 10 most similar movies
-    return movie_indices
+def add_movie(df, movie):
+    df = pd.concat([df, movie])
+    df.reset_index(inplace=True, drop=True)
+    return df, df.tail(1).index
 
 
-def parse_cast_genre_keyword(row):
-    return set([x['name'].replace(' ', '') for x in eval(row)])
+def calculate_rank(df, movie, sorting_column):
+    df = df.loc[df['title'] != movie.title.values[0]]
+    df.sort_values(by=sorting_column, ascending=False, inplace=True)
+    df.reset_index(inplace=True, drop=True)
+    if 'rank' in df.columns: 
+        df['rank'] += df.index
+    else:
+        df['rank'] = df.index
+    return df.sort_values(by=['rank'])
+
+
+def parse_cast_keywords(row):
+    return ' '.join(set([x['name'].replace(' ', '') for x in eval(row)]))
 
 
 def parse_crew(row):
-    return set([x['name'].replace(' ', '') for x in eval(row) 
-                if x['job'] in ('Director', 'Screenplay')])
+    return ' '.join(set([x['name'].replace(' ', '') for x in eval(row) 
+                if x['job'] in ('Director', 'Screenplay')]))
 
 
 def concat_columns(df):
